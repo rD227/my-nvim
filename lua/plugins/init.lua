@@ -1,0 +1,231 @@
+-- lua/plugins/init.lua
+-- lazy.nvim 自动安装 + 插件列表总入口
+
+vim.opt.termguicolors = true
+
+local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
+if not vim.loop.fs_stat(lazypath) then
+  vim.fn.system({
+    "git", "clone", "--filter=blob:none",
+    "https://github.com/folke/lazy.nvim.git",
+    "--branch=stable",
+    lazypath,
+  })
+end
+vim.opt.rtp:prepend(lazypath)
+
+require("lazy").setup({
+
+  -- ============================================================
+  -- 颜色主题：Catppuccin Mocha（摩卡）+ 自定义 highlight_overrides
+  -- ============================================================
+  {
+    "catppuccin/nvim",
+    name = "catppuccin",
+    lazy = false,
+    priority = 1000,
+    config = function()
+      require("catppuccin").setup({
+        flavour = "mocha",
+        highlight_overrides = {
+          mocha = function(colors)
+            return {
+              Pmenu           = { bg = "#F5C2E7", fg = "#1e1e2e" },
+              PmenuSel        = { bg = "#74C7Ec", fg = "#1e1e2e" },
+              PmenuSbar       = { bg = "#7F849C" },
+              PmenuThumb      = { bg = "#81A1C0" },
+              Normal          = { fg = "#B0C4DE", bg = "NONE" },
+              CursorLine      = { bg = "#505050" },
+              NormalFloat     = { bg = "#F5C2E7", fg = "#1e1e2e" },
+              DiagnosticError = { fg = "#F38BA8" },
+              DiagnosticWarn  = { fg = "#FAB387" },
+              -- nvim-cmp 补全菜单文字（Pmenu 只管底色，文字由这些控制）
+              CmpItemAbbr     = { fg = "#1e1e2e" },
+              CmpItemAbbrMatch = { fg = "#6c4c8c", bold = true },
+              CmpItemKind     = { fg = "#5c3d7a" },
+            }
+          end,
+        },
+      })
+
+      vim.cmd("colorscheme catppuccin-mocha")
+    end,
+  },
+
+  -- ============================================================
+  -- 状态栏：lightline → lualine（更轻，支持 LSP 状态显示）
+  -- ============================================================
+  {
+    "nvim-lualine/lualine.nvim",
+    event = "VeryLazy",
+    dependencies = { "nvim-tree/nvim-web-devicons" },
+    opts = {
+      options = {
+        theme = "catppuccin-mocha",
+        component_separators = "|",
+        section_separators = { left = "", right = "" },
+      },
+      sections = {
+        lualine_a = { "mode" },
+        lualine_b = { "branch", "diff", "diagnostics" },
+        lualine_c = { { "filename", path = 1 } },
+        lualine_x = { "filetype" },
+        lualine_y = { "progress" },
+        lualine_z = { "location" },
+      },
+    },
+  },
+
+  -- ============================================================
+  -- 文件树：NERDTree → neo-tree（Lua 实现，大项目不卡）
+  -- ============================================================
+  {
+    "nvim-neo-tree/neo-tree.nvim",
+    branch = "v3.x",
+    cmd = "Neotree",
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+      "nvim-tree/nvim-web-devicons",
+      "MunifTanjim/nui.nvim",
+    },
+    opts = {
+      window = { width = 30 },
+      filesystem = {
+        filtered_items = { hide_dotfiles = false },
+        follow_current_file = { enabled = true },
+      },
+    },
+  },
+
+  -- ============================================================
+  -- 彩虹括号：rainbow → rainbow-delimiters（Treesitter 版）
+  -- ============================================================
+  {
+    "HiPhish/rainbow-delimiters.nvim",
+    event = "BufReadPost",
+  },
+
+  -- ============================================================
+  -- 启动页：vim-startify → alpha-nvim
+  -- ============================================================
+  {
+    "goolord/alpha-nvim",
+    event = "VimEnter",
+    dependencies = { "nvim-tree/nvim-web-devicons" },
+    config = function()
+      local alpha = require("alpha")
+      local dashboard = require("alpha.themes.dashboard")
+      dashboard.section.header.val = {
+        "  nvim · android dev  ",
+        "  shizuku-ftp edition ",
+      }
+      dashboard.section.buttons.val = {
+        dashboard.button("e", "  新建文件",   ":ene <BAR> startinsert<CR>"),
+        dashboard.button("f", "  查找文件",   ":Telescope find_files<CR>"),
+        dashboard.button("r", "  最近文件",   ":Telescope oldfiles<CR>"),
+        dashboard.button("q", "  退出",       ":qa<CR>"),
+      }
+      alpha.setup(dashboard.opts)
+    end,
+  },
+
+  -- ============================================================
+  -- 注释：nerdcommenter → Comment.nvim（更简洁）
+  -- gcc 注释当前行，gc + 动作注释块
+  -- ============================================================
+  {
+    "numToStr/Comment.nvim",
+    event = "BufReadPost",
+    opts = {
+      padding = true,  -- 对应原 NERDSpaceDelims = 1
+    },
+  },
+
+  -- ============================================================
+  -- Treesitter：语法高亮、缩进、结构感知
+  -- 新版 nvim-treesitter API：setup 只接受 install_dir，
+  -- 高亮/缩进通过 FileType autocmd 手动启用
+  -- 安装 parser 需要系统安装 tree-sitter CLI（pacman -S tree-sitter）
+  -- ============================================================
+  {
+    "nvim-treesitter/nvim-treesitter",
+    build  = ":TSUpdate",
+    lazy   = false,
+    priority = 900,
+    config = function()
+      require("nvim-treesitter").setup({})
+
+      -- 需要先安装 tree-sitter CLI 才能编译 parser：
+      --   sudo pacman -S tree-sitter
+      -- 之后在 nvim 中执行 :TSInstall lua vim python c ... 来安装 parser
+
+      local parsers = {
+        "lua", "vim", "vimdoc",
+        "python", "c", "cpp",
+        "java", "kotlin",
+        "json", "yaml", "toml",
+        "markdown", "html", "css",
+        "bash",
+      }
+
+      vim.api.nvim_create_autocmd("FileType", {
+        pattern = parsers,
+        callback = function()
+          pcall(vim.treesitter.start)
+          pcall(function()
+            vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+          end)
+        end,
+      })
+    end,
+  },
+
+  -- ============================================================
+  -- LSP 配置
+  -- ============================================================
+  { import = "plugins.lsp" },
+
+  -- ============================================================
+  -- 补全引擎
+  -- ============================================================
+  { import = "plugins.cmp" },
+
+  -- ============================================================
+  -- 模糊查找：Telescope
+  -- ============================================================
+  {
+    "nvim-telescope/telescope.nvim",
+    cmd = "Telescope",
+    dependencies = { "nvim-lua/plenary.nvim" },
+    keys = {
+      { "<leader>ff", ":Telescope find_files<CR>",  desc = "查找文件" },
+      { "<leader>fg", ":Telescope live_grep<CR>",   desc = "全局搜索" },
+      { "<leader>fb", ":Telescope buffers<CR>",     desc = "缓冲区" },
+      { "<leader>fh", ":Telescope help_tags<CR>",   desc = "帮助" },
+    },
+    opts = {},
+  },
+
+  -- ============================================================
+  -- 自动括号配对（对应原 coc-pairs）
+  -- ============================================================
+  {
+    "windwp/nvim-autopairs",
+    event = "InsertEnter",
+    opts = {},
+  },
+
+  -- ============================================================
+  -- Git 集成
+  -- ============================================================
+  {
+    "lewis6991/gitsigns.nvim",
+    event = "BufReadPost",
+    opts = {},
+  },
+
+}, {
+  -- lazy.nvim 自身配置
+  ui = { border = "rounded" },
+  checker = { enabled = false },  -- 关掉自动检查更新，省网络
+})
