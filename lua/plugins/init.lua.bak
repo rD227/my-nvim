@@ -17,7 +17,7 @@ vim.opt.rtp:prepend(lazypath)
 require("lazy").setup({
 
   -- ============================================================
-  -- 颜色主题：Catppuccin Mocha 默认 + 浅粉浮窗 + 深色文字
+  -- 颜色主题：Catppuccin Mocha（摩卡）+ 自定义 highlight_overrides
   -- ============================================================
   {
     "catppuccin/nvim",
@@ -30,12 +30,22 @@ require("lazy").setup({
         highlight_overrides = {
           mocha = function(colors)
             return {
-              -- 补全窗 + 浮窗：浅粉色底
---              Pmenu       = { bg = "#F5C2E7", fg = colors.text },
---              PmenuSel    = { bg = "#74C7Ec", fg = colors.text },
-              PmenuSbar   = { bg = "#CBA6F7" },
-              PmenuThumb  = { bg = "#89B4FA" },
---              NormalFloat = { bg = "#F5C2E7", fg = colors.text },
+              Pmenu           = { bg = "#F5C2E7", fg = "#1e1e2e" },
+              PmenuSel        = { bg = "#74C7Ec", fg = "#1e1e2e" },
+              PmenuSbar       = { bg = "#7F849C" },
+              PmenuThumb      = { bg = "#81A1C0" },
+              Normal          = { fg = "#B0C4DE", bg = "NONE" },
+              CursorLine      = { bg = "#505050" },
+              NormalFloat     = { bg = "#F5C2E7", fg = "#1e1e2e" },
+              DiagnosticError = { fg = "#F38BA8" },
+              DiagnosticWarn  = { fg = "#FAB387" },
+              -- nvim-cmp 补全菜单文字（Pmenu 只管底色，文字由这些控制）
+              CmpItemAbbr          = { fg = "#1e1e2e" },
+              CmpItemAbbrMatch     = { fg = "#60709e", bold = true },
+              CmpItemAbbrMatchFuzzy = { fg = "#1e1e2e" },
+              CmpItemAbbrDeprecated = { fg = "#5c4a6e", strikethrough = true },
+              CmpItemKind          = { fg = "#5c3d7a" },
+              CmpItemMenu          = { fg = "#4955a0" },
             }
           end,
         },
@@ -43,17 +53,18 @@ require("lazy").setup({
 
       vim.cmd("colorscheme catppuccin-mocha")
 
-      -- CmpItem* 等第三方 group 不走 compile 缓存，直接 set_hl 覆盖
+      -- 强制覆盖 nvim-cmp 文字色（catppuccin 编译器不处理第三方 group）
       local function fix_cmp_colors()
-        local dark = "#1e1e2e"
-        vim.api.nvim_set_hl(0, "CmpItemAbbr",           { fg = "#f5c2e7" })
-        vim.api.nvim_set_hl(0, "CmpItemAbbrMatch",      { fg = "#60709e", bold = true })
-        vim.api.nvim_set_hl(0, "CmpItemAbbrMatchFuzzy", { fg = dark })
-        vim.api.nvim_set_hl(0, "CmpItemAbbrDeprecated", { fg = "#6c5c7a", strikethrough = true })
-        vim.api.nvim_set_hl(0, "CmpItemKind",           { fg = "#8c6cae" })
-        vim.api.nvim_set_hl(0, "CmpItemMenu",           { fg = "#585878" })
+        vim.api.nvim_set_hl(0, "CmpItemMenu",          { fg = "#4a4a5a" })
+        vim.api.nvim_set_hl(0, "CmpItemKind",          { fg = "#5c3d7a" })
+        vim.api.nvim_set_hl(0, "CmpItemAbbr",          { fg = "#1e1e2e" })
+        vim.api.nvim_set_hl(0, "CmpItemAbbrMatch",     { fg = "#60709e", bold = true })
+        vim.api.nvim_set_hl(0, "CmpItemAbbrMatchFuzzy", { fg = "#1e1e2e" })
+        vim.api.nvim_set_hl(0, "CmpItemAbbrDeprecated", { fg = "#5c4a6e", strikethrough = true })
       end
       fix_cmp_colors()
+
+      -- ColorScheme 每次触发后重新覆盖（nvim-cmp 会在 ColorScheme 时重建 CmpItem*）
       vim.api.nvim_create_autocmd("ColorScheme", {
         pattern = "*",
         callback = fix_cmp_colors,
